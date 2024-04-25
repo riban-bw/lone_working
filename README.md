@@ -54,6 +54,7 @@ Within the lone working chat in Telegram:
 ### Each lone working session
 Within the lone working chat in Telegram:
 - Press `Start supervising (/supervise)` option in menu - you should receive a notification confirming you are now a supervisor (or that you were already logged in as a supervisor)
+- Press `List sessions (/sessions)` menu option to list active sessions - you can select a session id from the list to start supervising that session
 - You will receive a notification when a user adds you to a monitored session
 - You will receive an `⚠️ ALERT: <user's name> has not responded! /handle_xxxxxx` alert if a user has failed to acknowledge several notifications (default 46 minutes since last acknowledgement) - This will repeat until the user acknowledges their alert (default every 4 minutes)
 - Press the `/handle` link to notify all supervising users that you are responding to the alert
@@ -68,11 +69,13 @@ The system consists of two parts:
 
 The Telegram bot is a simple bot, configured as described in the [Telegram bot instructions](https://core.telegram.org/bots). The bot's API token is required by the Python script. The only configuration for the bot is to add commands:
 
-/begin - Start a monitored user session
-/end - End a monitored user session
-/supervise - Start supervising
-/unsupervise - End supervising
-
+```
+begin - Start a monitored user session
+end - End a monitored user session
+supervise - Start supervising
+unsupervise - End supervising
+sessions - List active sessions
+```
 The Python script (hosted in this git repository) needs to be run on an Internet connected host. It is tested on Debian 10 Bullseye on Raspberry Pi 4 but should work on most platforms supporting Python 3 and the dependencies.
 
 ## Dependencies
