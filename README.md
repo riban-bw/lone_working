@@ -132,9 +132,6 @@ Command line parameters in short or long form can be provided for the following 
 
 If the service is stopped, e.g. with ctrl+c, it saves its current list of users, supervisors and sessions. When it restarts it restores these.
 
-# Possible enhancements
-- Ability for supervisor to list users they are supervising
-- Ability for supervisor to end user session, e.g. if user has forgotten and superviosr is receiving noticiations
-- Priority order to acknowledge supervisors
-- Groups - allow users to only see list of relevant supervisors
-- Ability for supervisor to add themselves to an existing session
+# Defects and enhancements
+Please use issue tracker to report bugs an feature requests. Feel free to submit pull requests to resolve any bugs or implement new features. Add comments to the issue tracker to advance the discussion of such issues.
+All known issues have been entered into the issue tracker.
