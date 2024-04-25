@@ -80,6 +80,13 @@ def signal_handler(sig, frame):
     sys.exit(0)
 
 
+def get_session_supervisor_names(session):
+    sups = []
+    for sup in sessions[session]['supervisors']:
+        sups.append(users[sup])
+    return sups
+
+
 def on_telegram(msg):
     global sessions, users, supervisors
     logging.debug(msg)
@@ -129,7 +136,7 @@ def on_telegram(msg):
                         bot.sendMessage(sup_id, f"💚 {users[id]} has responded")
                 sessions[id]['missed'] = 0
                 sessions[id]['last_msg'] = monotonic()
-            elif msg['text'] == '/supervise':
+            elif msg['text'].startswith('/supervise'):
                 name = users[id]
                 if id not in supervisors:
                     supervisors.append(id)
@@ -141,8 +148,21 @@ def on_telegram(msg):
                                     sups.append(users[sup_id])
                             bot.sendMessage(session_id, f"{name} has started supervising. Supervisors: {', '.join(sups)}")
                     bot.sendMessage(id, "You are now registered as a supervisor.")
-                else:
+                elif msg['text'] == '/supervise':
                     bot.sendMessage(id, "You are already registered as a supervisor.")
+                try:
+                    session_id = int(msg['text'][11:])
+                    if id not in sessions[session_id]['supervisors']:
+                        sessions[session_id]['supervisors'].append(id)
+                        sups = get_session_supervisor_names(session_id)
+                        bot.sendMessage(session_id, f"{users[id]} has started supervising. Supervisors: {', '.join(sups)}")
+                    user_names = []
+                    for session_id in sessions:
+                        if id in sessions[session_id]['supervisors']:
+                            user_names.append(users[session_id])
+                    bot.sendMessage(id, f"You are now supervising {', '.join(user_names)}")
+                except Exception as e:
+                    logging.warning(e)
                 logging.info(f"Adding supervisor {name}")
             elif msg['text'] == '/unsupervise':
                 name = users[id]
@@ -150,10 +170,7 @@ def on_telegram(msg):
                 supervising_sessions = []
                 for session_id, session in sessions.items():
                     if id in session['supervisors']:
-                        sups = []
-                        for sup_id in session['supervisors']:
-                            if sup_id in supervisors:
-                                sups.append(users[sup_id])
+                        sups = get_session_supervisor_names(session_id)
                         if sups:
                             bot.sendMessage(session_id, f"{name} has stopped supervising. Remaining supervisors: {', '.join(sups)}")
                         else:
@@ -168,13 +185,18 @@ def on_telegram(msg):
                 user_id = int(msg['text'][8:])
                 for sup_id in sessions[id]['supervisors']:
                     bot.sendMessage(sup_id, f"{users[id]} is handling alert for {users[user_id]}")
+            elif msg['text'] == "/sessions":
+               session_list = "" 
+               for session in sessions:
+                    session_list += "\n" + f"/supervise_{session} {users[session]}. Supervisors:"
+                    for sup_id in sessions[session]['supervisors']:
+                        session_list += f" {users[sup_id]}"
+               bot.sendMessage(id, f"Current sessions:{session_list}")
             else:
                 for sup_id in supervisors:
                     if msg['text'] == f"/{sup_id}" and id not in sessions[id]['supervisors']:
                         sessions[id]['supervisors'].append(sup_id)
-                        sups = []
-                        for sup in sessions[id]['supervisors']:
-                            sups.append(users[sup])
+                        sups = get_session_supervisor_names(id)
                         bot.sendMessage(id, f"💚 Monitoring session with supervisors: {', '.join(sups)}")
                         bot.sendMessage(sup_id, f"You are now supervising {users[id]}")
         except Exception as e:
