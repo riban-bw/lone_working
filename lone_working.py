@@ -164,6 +164,10 @@ def on_telegram(msg):
                 else:
                     bot.sendMessage(id, "You have unregistered as a supervisor")
                 logging.info(f"Removing supervisor {name}")
+            elif msg['text'].startswith("/handle_"):
+                user_id = int(msg['text'][8:])
+                for sup_id in sessions[id]['supervisors']:
+                    bot.sendMessage(sup_id, f"{users[id]} is handling alert for {users[user_id]}")
             else:
                 for sup_id in supervisors:
                     if msg['text'] == f"/{sup_id}" and id not in sessions[id]['supervisors']:
@@ -274,10 +278,10 @@ while True:
                     bot.sendMessage(id, "🧡 Are you /okay?")
                 elif sessions[id]['supervisors']:
                     bot.sendMessage(id, "❤️ Alert sent to supervisors! Are you /okay?")
-                    # Send supervisor notification every 5 minutes after user has failed to acknowlege 5 consecutive 1-minute notifications
+                    # Send supervisor notification
                     for sup_id in config['supervisors']:
                         sleep(1)
-                        bot.sendMessage(sup_id, f"⚠️ ALERT: {users[id]} has not responded!")
+                        bot.sendMessage(sup_id, f"⚠️ ALERT: {users[id]} has not responded! /handle_{id}")
                         logging.info(f"ALERT for user {users[id]} sent to {users[sup_id]}")
                 else:
                     bot.sendMessage(id, "❤️ Are you /okay?")
