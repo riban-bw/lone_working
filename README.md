@@ -3,7 +3,7 @@ Telegram messenger bot lone working service
 
 # About
 
-This Python script acts as the background service to implement a lone-working user check system. Users start a session and receive notifications (by default every 30 minutes) to which they should respond. If a user does not respond, they receive further notifications (by default 3) at a different interval (by default 4 minutes). If they still do not respond then the list of users supervising the session will start to receive alerts at the repeat interval (by default 4 minutes). If the user acknowledges the notification then alerts cease. The user can end the session to stop notifications.
+There are risks whe someone must working alone or as part of a team in an area with increased risks. This system provides a mechanism to monitor such usecases and reduce the risk of lone-working. Users start a session and receive notifications (by default every 30 minutes) to which they should respond. If a user does not respond, they receive further notifications (by default 3) at a different interval (by default 4 minutes). If they still do not respond then the list of users supervising the session will start to receive alerts at the repeat interval (by default 4 minutes). If the user acknowledges the notification then alerts cease. The user can end the session to stop notifications.
 
 # User Guide
 
