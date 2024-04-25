@@ -178,16 +178,6 @@ def on_telegram(msg):
     logging.debug(f"Telegram message: {msg}")
 
 
-def clear_updates():
-    try:
-        update = bot.getUpdates()[0]
-        id = update['update_id'] + 1
-        bot.getUpdates(id)
-        logging.info(f"Getting update {id}")
-    except:
-        pass
-
-
 logging.info("Starting lone working service")
 signal.signal(signal.SIGINT, signal_handler)
 
@@ -237,7 +227,7 @@ if args.alert_count is not None:
 if args.save_filename is not None:
     SAVE_FILENAME = args.save_filename
 
-logging.info(f"Using API token: {API_TOKEN}")
+logging.debug(f"Using API token: {API_TOKEN}")
 try:
     bot = telepot.Bot(API_TOKEN)
     bot.getUpdates(offset=-1)
@@ -274,7 +264,7 @@ while True:
     sleep(60)
     for id, config in sessions.items():
         time_delta = int((monotonic() - config['last_msg']) / 60) - NOTIFY_INTERVAL
-        logging.info(time_delta)
+        logging.debug(f"Minutes to next notification for {id} time_delta")
         if time_delta >= 0 and time_delta % REPEAT_INTERVAL == 0:
             try:
                 # Send user notifications every NOTIFY_INTERVAL minutes then every REPEAT_INTERVAL until acknowledged
