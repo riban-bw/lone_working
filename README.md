@@ -5,6 +5,60 @@ Telegram messenger bot lone working service
 
 This Python script acts as the background service to implement a lone-working user check system. Users start a session and receive notifications (by default every 30 minutes) to which they should respond. If a user does not respond, they receive further notifications (by default 3) at a different interval (by default 4 minutes). If they still do not respond then the list of users supervising the session will start to receive alerts at the repeat interval (by default 4 minutes). If the user acknowledges the notification then alerts cease. The user can end the session to stop notifications.
 
+# User Guide
+
+There are two types of user:
+
+- Monitored user - A person working alone that needs to check in regularly to ensure they remain healthy and safe
+- Supervisor - A person who will be notified if a monitored user has failed to check in
+
+There may be any quantity of monitored users and supervisors and each monitored user can select any quantity of available supervisors for their monitored session.
+
+## Monitored User Workflow
+
+### First time configuration
+- Install Telegram App on mobile device (Android phone, iPhone, etc.)
+- Create Telegram account and log in on mobile device
+- Start chat with bot (system admin should provide bot name)
+- Press `START` button to start the bot connection
+- Change the notification sound for the chat to be destinctive:
+  - Press _hamburger_ menu
+  - Select "Mute"
+  - Select "Customize"
+  - Select "Sound"
+  - Choose distinctive sound - it is recommended this is loud and long to avoid missing notifications
+### Each lone working session
+Within the lone working chat in Telegram:
+- Press `Start monitored session (/begin)` option in menu - you should receive a notification listing available supervisors
+- Press the numeric link next to each supervisor you wish to add to the session - you should receive a notification after each supervisor is added, listing the supervisors monitoring the session
+- Periodically a `💚 Are you /okay?` notification will be sent to the chat - press the `/okay` link in the message or the `/okay` menu option to acknowledge the notification
+- The `🧡 Are you /okay?` notification will repeat periodically (every 4 minutes by default) until acknowledged. Note the repeated messages have an orange heart.
+- After a number of repeated notifications (3 times by default) you will start to receive `❤️ Alert sent to supervisors! Are you /okay?` notifications which will continue at the same repeat rate until you acknowledge
+- If there are no supervisors available the red heart messages will just say, `❤️ Are you /okay?`
+- You will receive a message if a user that is supervising your session logs off - This will include an alert indication if there are no more users supervising your session
+- Press `Start monitored session (/begin)` to see list of available supervisors and list those supervising your session - this does not effect the current session
+- Press `End monitored session (/end)` to end the monitored session - all users supervising the session receive a notification that the session has ended
+
+## Supervisor Workflow
+### First time configuration
+- Install Telegram App on mobile device (Android phone, iPhone, etc.)
+- Create Telegram account and log in on mobile device
+- Start chat with bot (system admin should provide bot name)
+- Press `START` button to start the bot connection
+- Change the notification sound for the chat to be destinctive:
+  - Press _hamburger_ menu
+  - Select "Mute"
+  - Select "Customize"
+  - Select "Sound"
+  - Choose distinctive sound - it is recommended this is loud and long to avoid missing notifications
+### Each lone working session
+Within the lone working chat in Telegram:
+- Press `Start supervising (/supervise)` option in menu - you should receive a notification confirming you are now a supervisor (or that you were already logged in as a supervisor)
+- You will receive a notification when a user adds you to a monitored session
+- You will receive an `⚠️ ALERT: <user's name> has not responded! /handle_xxxxxx` alert if a user has failed to acknowledge several notifications (default 46 minutes since last acknowledgement) - This will repeat until the user acknowledges their alert (default every 4 minutes)
+- Press the `/handle` link to notify all supervising users that you are responding to the alert
+- Press `Stop supervising (/unsupervise)` to log out and stop monitoring any sessions - any users that you are supervising will be notified that you have stopped supervising them
+
 # Build
 
 The system consists of two parts:
@@ -77,60 +131,6 @@ Command line parameters in short or long form can be provided for the following 
 ```
 
 If the service is stopped, e.g. with ctrl+c, it saves its current list of users, supervisors and sessions. When it restarts it restores these.
-
-# User Guide
-
-There are two types of user:
-
-- Monitored user - A person working alone that needs to check in regularly to ensure they remain healthy and safe
-- Supervisor - A person who will be notified if a monitored user has failed to check in
-
-There may be any quantity of monitored users and supervisors and each monitored user can select any quantity of available supervisors for their monitored session.
-
-## Monitored User Workflow
-
-### First time configuration
-- Install Telegram App on mobile device (Android phone, iPhone, etc.)
-- Create Telegram account and log in on mobile device
-- Start chat with bot (system admin should provide bot name)
-- Press `START` button to start the bot connection
-- Change the notification sound for the chat to be destinctive:
-  - Press _hamburger_ menu
-  - Select "Mute"
-  - Select "Customize"
-  - Select "Sound"
-  - Choose distinctive sound - it is recommended this is loud and long to avoid missing notifications
-### Each lone working session
-Within the lone working chat in Telegram:
-- Press `Start monitored session (/begin)` option in menu - you should receive a notification listing available supervisors
-- Press the numeric link next to each supervisor you wish to add to the session - you should receive a notification after each supervisor is added, listing the supervisors monitoring the session
-- Periodically a `💚 Are you /okay?` notification will be sent to the chat - press the `/okay` link in the message or the `/okay` menu option to acknowledge the notification
-- The `🧡 Are you /okay?` notification will repeat periodically (every 4 minutes by default) until acknowledged. Note the repeated messages have an orange heart.
-- After a number of repeated notifications (3 times by default) you will start to receive `❤️ Alert sent to supervisors! Are you /okay?` notifications which will continue at the same repeat rate until you acknowledge
-- If there are no supervisors available the red heart messages will just say, `❤️ Are you /okay?`
-- You will receive a message if a user that is supervising your session logs off - This will include an alert indication if there are no more users supervising your session
-- Press `Start monitored session (/begin)` to see list of available supervisors and list those supervising your session - this does not effect the current session
-- Press `End monitored session (/end)` to end the monitored session - all users supervising the session receive a notification that the session has ended
-
-## Supervisor Workflow
-### First time configuration
-- Install Telegram App on mobile device (Android phone, iPhone, etc.)
-- Create Telegram account and log in on mobile device
-- Start chat with bot (system admin should provide bot name)
-- Press `START` button to start the bot connection
-- Change the notification sound for the chat to be destinctive:
-  - Press _hamburger_ menu
-  - Select "Mute"
-  - Select "Customize"
-  - Select "Sound"
-  - Choose distinctive sound - it is recommended this is loud and long to avoid missing notifications
-### Each lone working session
-Within the lone working chat in Telegram:
-- Press `Start supervising (/supervise)` option in menu - you should receive a notification confirming you are now a supervisor (or that you were already logged in as a supervisor)
-- You will receive a notification when a user adds you to a monitored session
-- You will receive an `⚠️ ALERT: <user's name> has not responded! /handle_xxxxxx` alert if a user has failed to acknowledge several notifications (default 46 minutes since last acknowledgement) - This will repeat until the user acknowledges their alert (default every 4 minutes)
-- Press the `/handle` link to notify all supervising users that you are responding to the alert
-- Press `Stop supervising (/unsupervise)` to log out and stop monitoring any sessions - any users that you are supervising will be notified that you have stopped supervising them
 
 # Possible enhancements
 - Ability for supervisor to list users they are supervising
