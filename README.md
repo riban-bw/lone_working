@@ -128,7 +128,8 @@ Within the lone working chat in Telegram:
 Within the lone working chat in Telegram:
 - Press `Start supervising (/supervise)` option in menu - you should receive a notification confirming you are now a supervisor (or that you were already logged in as a supervisor)
 - You will receive a notification when a user adds you to a monitored session
-- You will receive an `⚠️ ALERT: <user's name> has not responded!` alert if a user has failed to acknowledge several notifications (default 46 minutes since last acknowledgement) - This will repeat until the user acknowledges their alert (default every 4 minutes)
+- You will receive an `⚠️ ALERT: <user's name> has not responded! /handle_xxxxxx` alert if a user has failed to acknowledge several notifications (default 46 minutes since last acknowledgement) - This will repeat until the user acknowledges their alert (default every 4 minutes)
+- Press the `/handle` link to notify all supervising users that you are responding to the alert
 - Press `Stop supervising (/unsupervise)` to log out and stop monitoring any sessions - any users that you are supervising will be notified that you have stopped supervising them
 
 # Possible enhancements
