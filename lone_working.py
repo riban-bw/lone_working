@@ -17,7 +17,7 @@ Depends on patch to telepot 12.7:
 """
 
 NOTIFY_INTERVAL = 30 # Interval in minutes between user notifications
-REPEAT_INTERVAL = 3 # Interval in minutes between notification repeats
+REPEAT_INTERVAL = 4 # Interval in minutes between notification repeats
 ALERT_COUNT = 3 # Quantity of missed user notifications before alert sent to supervisor
 SAVE_FILENAME = '/tmp/riban_loan_working.json'
 
