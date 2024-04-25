@@ -104,7 +104,6 @@ def on_telegram(msg):
                 logging.info(f"Ending monitoring session for user {name}")
             elif msg['text'] == '/start':
                 user = bot.getChatMember(id, id)['user']
-                # {'user': {'id': 5111001928, 'is_bot': False, 'first_name': 'Catherine', 'language_code': 'en'}, 'status': 'member'}            
                 id = user['id']
                 first_name = ''
                 last_name = ''
@@ -238,12 +237,14 @@ if args.alert_count is not None:
 if args.save_filename is not None:
     SAVE_FILENAME = args.save_filename
 
+logging.info(f"Using API token: {API_TOKEN}")
 try:
     bot = telepot.Bot(API_TOKEN)
     bot.getUpdates(offset=-1)
     bot.message_loop(on_telegram)
-except:
-    logging.info("Failed to configured telegram client")
+except Exception as e:
+    logging.error(f"Failed to configured telegram client: {e}")
+    sys.exit(-1)
 
 logging.info(f"Interval between user notification: {NOTIFY_INTERVAL} minutes")
 logging.info(f"Interval between repeat notification: {REPEAT_INTERVAL} minutes")
