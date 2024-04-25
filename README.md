@@ -136,3 +136,4 @@ Within the lone working chat in Telegram:
 - Ability for supervisor to end user session, e.g. if user has forgotten and superviosr is receiving noticiations
 - Priority order to acknowledge supervisors
 - Groups - allow users to only see list of relevant supervisors
+- Ability for supervisor to add themselves to an existing session
