@@ -139,6 +139,7 @@ def supervise(supervisor_id, session_id=None):
                 if sup_id in supervisors:
                     sups.append(users[sup_id])
             bot.sendMessage(session_id, f"{users[supervisor_id]} has started supervising. Supervisors: {', '.join(sups)}")
+            bot.sendMessage(supervisor_id, f"You have started supervising {users[session_id]}. Supervisors: {', '.join(sups)}")
 
 
 def unsupervise(supervisor_id, session_id):
