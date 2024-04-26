@@ -150,8 +150,8 @@ def unsupervise(supervisor_id, session_id):
         bot.sendMessage(supervisor_id, f"You have stopped supervising {users[session_id]}")
         logging.info(f"{users[supervisor_id]} stopped supervising {users[session_id]}")
     else:
-        bot.sendMessage(session_id, f"⚠️ {users[supervisor_id]} has stopped supervising. No one supervising!")
-        bot.sendMessage(supervisor_id, f"⚠️ You have stopped supervising {users[session_id]} leaving them unsupervised!")
+        bot.sendMessage(session_id, f"⚠️  {users[supervisor_id]} has stopped supervising. No one supervising!")
+        bot.sendMessage(supervisor_id, f"⚠️  You have stopped supervising {users[session_id]} leaving them unsupervised!")
         logging.info(f"{users[supervisor_id]} stopped supervising {users[session_id]} leaving them unsupervised")
 
 
@@ -319,14 +319,14 @@ while True:
                 elif config['missed'] < ALERT_COUNT:
                     bot.sendMessage(id, "🧡 Are you /okay?")
                 elif sessions[id]['supervisors']:
-                    bot.sendMessage(id, "❤️ Alert sent to supervisors! Are you /okay?")
+                    bot.sendMessage(id, "❤️  Alert sent to supervisors! Are you /okay?")
                     # Send supervisor notification
                     for sup_id in config['supervisors']:
                         sleep(1)
-                        bot.sendMessage(sup_id, f"⚠️ ALERT: {users[id]} has not responded! /handle_{id}")
+                        bot.sendMessage(sup_id, f"⚠️  ALERT: {users[id]} has not responded! /handle_{id}")
                         logging.info(f"ALERT for user {users[id]} sent to {users[sup_id]}")
                 else:
-                    bot.sendMessage(id, "❤️ Are you /okay?")
+                    bot.sendMessage(id, "❤️  Are you /okay?")
                 config['missed'] += 1
             except Exception as e:
                 logging.warning(e)
