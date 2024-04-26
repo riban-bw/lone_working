@@ -204,21 +204,30 @@ def on_telegram(msg):
                 for sup_id in sessions[id]['supervisors']:
                     bot.sendMessage(sup_id, f"{users[id]} is handling alert for {users[user_id]}")
             elif msg['text'] == "/sessions":
-               session_list = "" 
-               for session_id, session in sessions.items():
+                session_list = "" 
+                for session_id, session in sessions.items():
                     if id in session['supervisors']:
                         session_list += "\n" + f"/unsupervise_{session_id} {users[session_id]}. Supervisors:"
                     else:
                         session_list += "\n" + f"/supervise_{session_id} {users[session_id]}. Supervisors:"
                     for sup_id in session['supervisors']:
                         session_list += f" {users[sup_id]}"
-               bot.sendMessage(id, f"Current sessions:{session_list}")
+                bot.sendMessage(id, f"Current sessions:{session_list}")
             elif msg['text'].startswith("/add_supervisor_"):
                 try:
                     supervisor_id = int(msg['text'][16:])
                     supervise(supervisor_id, id)
                 except Exception as e:
                     logging.warning(e)
+            elif msg['text'] == '/users':
+                user_list = ""
+                for user_id, name in users.items():
+                    if user_id in supervisors:
+                        user_list += "\n  " + f"{name} (supervisor)"
+                    else:
+                        user_list += "\n  " + name
+                bot.sendMessage(id, f"Users: {user_list}")
+
         except Exception as e:
             logging.warning(e)
     logging.debug(f"Telegram message: {msg}")

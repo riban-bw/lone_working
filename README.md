@@ -60,6 +60,10 @@ Within the lone working chat in Telegram:
 - Press the `/handle` link to notify all supervising users that you are responding to the alert
 - Press `Stop supervising (/unsupervise)` to log out and stop monitoring any sessions - any users that you are supervising will be notified that you have stopped supervising them
 
+## Hidden commands
+There are some commands that are not in the menu:
+- `/users` - List all users on the system showing which are supervisors
+
 # Build
 
 The system consists of two parts:
