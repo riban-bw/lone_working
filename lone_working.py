@@ -19,7 +19,7 @@ Depends on patch to telepot 12.7:
 NOTIFY_INTERVAL = 30 # Interval in minutes between user notifications
 REPEAT_INTERVAL = 4 # Interval in minutes between notification repeats
 ALERT_COUNT = 3 # Quantity of missed user notifications before alert sent to supervisor
-SAVE_FILENAME = '/tmp/riban_loan_working.json'
+SAVE_FILENAME = '/tmp/riban_loan_working.json' #TODO: Change this to a persistent file location
 
 import telepot # sudo pip3 install telepot
 import logging
@@ -39,6 +39,7 @@ logging.basicConfig (
 users = {}
 sessions = {}
 supervisors = []
+running = True
 
 def save():
     config = {'users': users, 'sessions': sessions, 'supervisors': supervisors}
@@ -75,9 +76,11 @@ def load():
 
 
 def signal_handler(sig, frame):
-    save()
-    logging.info("Stopping lone working service")
-    sys.exit(0)
+    global running
+
+    if sig in [signal.SIGINT, signal.SIGTERM, signal.SIGKILL]:
+        running = False
+        logging.warning(f"Setting running False")
 
 
 def get_session_supervisor_names(session):
@@ -130,7 +133,7 @@ def supervise(supervisor_id, session_id=None):
         bot.sendMessage(supervisor_id, "You are now registered as a supervisor.")
         logging.info(f"Added supervisor {users[supervisor_id]}")
     if session_id is not None and supervisor_id not in sessions[session_id]['supervisors']:
-        sessions[session_id]['supervisors'].append(session_id)
+        sessions[session_id]['supervisors'].append(supervisor_id)
         logging.info(f"{users[supervisor_id]} started supervising {users[session_id]}")
     for session_id, session in sessions.items():
         if supervisor_id in session['supervisors']:
@@ -154,6 +157,18 @@ def unsupervise(supervisor_id, session_id):
         bot.sendMessage(session_id, f"⚠️  {users[supervisor_id]} has stopped supervising. No one supervising!")
         bot.sendMessage(supervisor_id, f"⚠️  You have stopped supervising {users[session_id]} leaving them unsupervised!")
         logging.info(f"{users[supervisor_id]} stopped supervising {users[session_id]} leaving them unsupervised")
+
+
+def notify_sessions(id):
+    session_list = "" 
+    for session_id, session in sessions.items():
+        if id in session['supervisors']:
+            session_list += "\n" + f"/unsupervise_{session_id} {users[session_id]}. Supervisors:"
+        else:
+            session_list += "\n" + f"/supervise_{session_id} {users[session_id]}. Supervisors:"
+        for sup_id in session['supervisors']:
+            session_list += f" {users[sup_id]}"
+    bot.sendMessage(id, f"Current sessions:{session_list}")
 
 
 def on_telegram(msg):
@@ -190,6 +205,8 @@ def on_telegram(msg):
                 except:
                     session_id = None
                 supervise(id, session_id)
+                if session_id is None:
+                    notify_sessions(id)
             elif msg['text'].startswith('/unsupervise'):
                 try:
                     unsupervise(id, int(msg['text'][13:]))
@@ -205,15 +222,7 @@ def on_telegram(msg):
                 for sup_id in sessions[id]['supervisors']:
                     bot.sendMessage(sup_id, f"{users[id]} is handling alert for {users[user_id]}")
             elif msg['text'] == "/sessions":
-                session_list = "" 
-                for session_id, session in sessions.items():
-                    if id in session['supervisors']:
-                        session_list += "\n" + f"/unsupervise_{session_id} {users[session_id]}. Supervisors:"
-                    else:
-                        session_list += "\n" + f"/supervise_{session_id} {users[session_id]}. Supervisors:"
-                    for sup_id in session['supervisors']:
-                        session_list += f" {users[sup_id]}"
-                bot.sendMessage(id, f"Current sessions:{session_list}")
+                notify_sessions(id)
             elif msg['text'].startswith("/add_supervisor_"):
                 try:
                     supervisor_id = int(msg['text'][16:])
@@ -234,112 +243,107 @@ def on_telegram(msg):
     logging.debug(f"Telegram message: {msg}")
 
 
-logging.info("Starting lone working service")
-signal.signal(signal.SIGINT, signal_handler)
+if __name__ == '__main__':
+    logging.info("Starting lone working service")
 
-parser = argparse.ArgumentParser(
-    prog="riban lone working service",
-    description="Provides backend for Telegram messaging bot lone working system",
-    )
-parser.add_argument('-t', '--api_token')
-parser.add_argument('-c', '--config')
-parser.add_argument('-n', '--notify_interval')
-parser.add_argument('-r', '--repeat_interval')
-parser.add_argument('-a', '--alert_count')
-parser.add_argument('-s', '--save_filename')
-args = parser.parse_args()
+    catchable_sigs = set(signal.Signals) - {signal.SIGKILL, signal.SIGSTOP}
+    for sig in catchable_sigs:
+        signal.signal(sig, signal_handler)
 
-if args.config is not None:
-    config_fn = args['config']
-else:
-    config_fn = '/etc/riban_lone_working.conf'
+    #signal.signal(signal.SIGINT, signal_handler)
 
-
-config = configparser.ConfigParser()
-try:
-    config.read(config_fn)
-    if 'Default' in config:
-        if 'API_TOKEN' in config['Default']:
-            API_TOKEN = config['Default']['API_TOKEN']
-        if 'NOTIFY_INTERVAL' in config['Default']:
-            NOTIFY_INTERVAL = config['Default']['NOTIFY_INTERVAL']
-        if 'REPEAT_INTERVAL' in config['Default']:
-            REPEAT_INTERVAL = config['Default']['REPEAT_INTERVAL']
-        if 'ALERT_COUNT' in config['Default']:
-            ALERT_COUNT = config['Default']['ALERT_COUNT']
-        if 'SAVE_FILENAME' in config['Default']:
-            SAVE_FILENAME = config['Default']['SAVE_FILENAME']
-except:
-    logging.warning(f"Cannot read config from {config_fn}")
-
-if args.api_token is not None:
-    API_TOKEN = args.api_token
-if args.notify_interval is not None:
-    NOTIFY_INTERVAL = int(args.notify_interval)
-if args.repeat_interval is not None:
-    REPEAT_INTERVAL = int(args.repeat_interval)
-if args.alert_count is not None:
-    ALERT_COUNT = int(args.alert_count)
-if args.save_filename is not None:
-    SAVE_FILENAME = args.save_filename
-
-logging.debug(f"Using API token: {API_TOKEN}")
-try:
-    bot = telepot.Bot(API_TOKEN)
-    bot.getUpdates(offset=-1)
-    bot.message_loop(on_telegram)
-except Exception as e:
-    logging.error(f"Failed to configured telegram client: {e}")
-    sys.exit(-1)
-
-logging.info(f"Interval between user notification: {NOTIFY_INTERVAL} minutes")
-logging.info(f"Interval between repeat notification: {REPEAT_INTERVAL} minutes")
-logging.info(f"Quantity of notifications before alert: {ALERT_COUNT}")
-logging.info(f"Filename of persistent data: {SAVE_FILENAME}")
-# Load last session and attempt to restart sessions
-load()
-"""
-for user in users:
+    parser = argparse.ArgumentParser(
+        prog="riban lone working service",
+        description="Provides backend for Telegram messaging bot lone working system",
+        )
+    parser.add_argument('-t', '--api_token')
+    parser.add_argument('-c', '--config')
+    parser.add_argument('-n', '--notify_interval')
+    parser.add_argument('-r', '--repeat_interval')
+    parser.add_argument('-a', '--alert_count')
+    parser.add_argument('-s', '--save_filename')
+    args = parser.parse_args()
+    
+    if args.config is not None:
+        config_fn = args['config']
+    else:
+        config_fn = '/etc/riban_lone_working.conf'
+    
+    
+    config = configparser.ConfigParser()
     try:
-        bot.sendMessage(user, "/start")
-    except Exception as e:
-        logging.warning(e)
-for supervisor in supervisors:
+        config.read(config_fn)
+        if 'Default' in config:
+            if 'API_TOKEN' in config['Default']:
+                API_TOKEN = config['Default']['API_TOKEN']
+            if 'NOTIFY_INTERVAL' in config['Default']:
+                NOTIFY_INTERVAL = config['Default']['NOTIFY_INTERVAL']
+            if 'REPEAT_INTERVAL' in config['Default']:
+                REPEAT_INTERVAL = config['Default']['REPEAT_INTERVAL']
+            if 'ALERT_COUNT' in config['Default']:
+                ALERT_COUNT = config['Default']['ALERT_COUNT']
+            if 'SAVE_FILENAME' in config['Default']:
+                SAVE_FILENAME = config['Default']['SAVE_FILENAME']
+    except:
+        logging.warning(f"Cannot read config from {config_fn}")
+    
+    if args.api_token is not None:
+        API_TOKEN = args.api_token
+    if args.notify_interval is not None:
+        NOTIFY_INTERVAL = int(args.notify_interval)
+    if args.repeat_interval is not None:
+        REPEAT_INTERVAL = int(args.repeat_interval)
+    if args.alert_count is not None:
+        ALERT_COUNT = int(args.alert_count)
+    if args.save_filename is not None:
+        SAVE_FILENAME = args.save_filename
+    
+    logging.debug(f"Using API token: {API_TOKEN}")
     try:
-        bot.sendMessage(supervisor, "/supervise")
+        bot = telepot.Bot(API_TOKEN)
+        bot.getUpdates(offset=-1)
+        bot.message_loop(on_telegram)
     except Exception as e:
-        logging.warning(e)
-for session in sessions:
-    try:
-        bot.sendMessage(session, "/begin")
-    except Exception as e:
-        logging.warning(e)
-"""
+        logging.error(f"Failed to configured telegram client: {e}")
+        sys.exit(-1)
 
-while True:
-    sleep(60)
-    for id, config in sessions.items():
-        time_delta = int((monotonic() - config['last_msg']) / 60) - NOTIFY_INTERVAL
-        logging.debug(f"Minutes to next notification for {id} time_delta")
-        if time_delta >= 0 and time_delta % REPEAT_INTERVAL == 0:
-            try:
-                # Send user notifications every NOTIFY_INTERVAL minutes then every REPEAT_INTERVAL until acknowledged
-                if config['missed'] == 0:
-                    bot.sendMessage(id, "💚 Are you /okay?")
-                elif config['missed'] < ALERT_COUNT:
-                    bot.sendMessage(id, "🧡 Are you /okay?")
-                elif sessions[id]['supervisors']:
-                    bot.sendMessage(id, "❤️  Alert sent to supervisors! Are you /okay?")
-                    # Send supervisor notification
-                    for sup_id in config['supervisors']:
-                        sleep(1)
-                        bot.sendMessage(sup_id, f"⚠️  ALERT: {users[id]} has not responded! /handle_{id}")
-                        logging.info(f"ALERT for user {users[id]} sent to {users[sup_id]}")
-                else:
-                    bot.sendMessage(id, "❤️  Are you /okay?")
-                config['missed'] += 1
-            except Exception as e:
-                logging.warning(e)
-                bot.getUpdates(offset=-1)
-
-save()
+    logging.info(f"Interval between user notification: {NOTIFY_INTERVAL} minutes")
+    logging.info(f"Interval between repeat notification: {REPEAT_INTERVAL} minutes")
+    logging.info(f"Quantity of notifications before alert: {ALERT_COUNT}")
+    logging.info(f"Filename of persistent data: {SAVE_FILENAME}")
+    # Load last session and attempt to restart sessions
+    load()
+    
+    count = 0
+    while running:
+        sleep(1)
+        count += 1
+        if count < 60:
+            continue
+        for id, config in sessions.items():
+            time_delta = int((monotonic() - config['last_msg']) / 60) - NOTIFY_INTERVAL
+            logging.debug(f"Minutes to next notification for {id} time_delta")
+            if time_delta >= 0 and time_delta % REPEAT_INTERVAL == 0:
+                try:
+                    # Send user notifications every NOTIFY_INTERVAL minutes then every REPEAT_INTERVAL until acknowledged
+                    if config['missed'] == 0:
+                        bot.sendMessage(id, "💚 Are you /okay?")
+                    elif config['missed'] < ALERT_COUNT:
+                        bot.sendMessage(id, "🧡 Are you /okay?")
+                    elif sessions[id]['supervisors']:
+                        bot.sendMessage(id, "❤️  Alert sent to supervisors! Are you /okay?")
+                        # Send supervisor notification
+                        for sup_id in config['supervisors']:
+                            sleep(1)
+                            bot.sendMessage(sup_id, f"⚠️  ALERT: {users[id]} has not responded! /handle_{id}")
+                            logging.info(f"ALERT for user {users[id]} sent to {users[sup_id]}")
+                    else:
+                        bot.sendMessage(id, "❤️  Are you /okay?")
+                    config['missed'] += 1
+                except Exception as e:
+                    logging.warning(e)
+                    bot.getUpdates(offset=-1)
+        count = 0
+    
+    logging.info("Stopping lone working service")
+    save()
