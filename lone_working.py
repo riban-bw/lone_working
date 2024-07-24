@@ -23,7 +23,7 @@ SAVE_FILENAME = '/tmp/riban_loan_working.json' #TODO: Change this to a persisten
 
 import telepot # sudo pip3 install telepot
 import logging
-from time import sleep, monotonic
+from time import sleep, time
 import json
 import signal
 import sys
@@ -36,10 +36,11 @@ logging.basicConfig (
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 
-users = {}
-sessions = {}
-supervisors = []
-running = True
+users = {} # Map of user names, mapped by user id
+sessions = {} # Map of sessions, indexed by user id. {'last_msg': monotonic(), 'missed':0, 'supervisors':[]}
+supervisors = [] # List of user ids that are logged in as supervisors
+running = True # True whilst main program loop is running
+dirty = False # True if state changed and save required
 
 def save():
     config = {'users': users, 'sessions': sessions, 'supervisors': supervisors}
@@ -49,7 +50,7 @@ def save():
 
 
 def load():
-    global users, sessions, supervisors
+    global users, sessions, supervisors, dirty
     users = {}
     try:
         with open(SAVE_FILENAME, 'r') as file:
@@ -72,6 +73,7 @@ def load():
                 del sessions[int(user)]
             except Exception as e:
                 logging.warning(e)
+    dirty = False
     logging.info(f"Loaded users:{users} supervisors:{supervisors} sessions:{sessions}")
 
 
@@ -91,6 +93,7 @@ def get_session_supervisor_names(session):
 
 
 def end_session(id):
+    global dirty
     if id not in sessions:
         return
     if id in users:
@@ -100,9 +103,11 @@ def end_session(id):
         bot.sendMessage(id, f"🩶 Your session has ended. You are no longer monitored.")
         logging.info(f"Ended monitoring session for user {name}")
     del sessions[id]
+    dirty = True
 
 
 def add_user(id):
+    global dirty
     if id in users:
         return
     user = bot.getChatMember(id, id)['user']
@@ -115,19 +120,23 @@ def add_user(id):
         last_name = user['last_name']
     name = ' '.join([first_name,last_name])
     users[id] = name
+    dirty = True
     logging.info(f"Added new user {id}: {name}")
 
 
 def remove_user(id):
+    global dirty
     if id not in users:
         return
     name = users[id]
     del users[id]
     logging.info(f"Removed user: {name}")
     end_session(id)
+    dirty = True
 
 
 def supervise(supervisor_id, session_id=None):
+    global dirty
     if supervisor_id not in supervisors:
         supervisors.append(supervisor_id)
         bot.sendMessage(supervisor_id, "You are now registered as a supervisor.")
@@ -143,9 +152,11 @@ def supervise(supervisor_id, session_id=None):
                     sups.append(users[sup_id])
             bot.sendMessage(session_id, f"{users[supervisor_id]} has started supervising. Supervisors: {', '.join(sups)}")
             bot.sendMessage(supervisor_id, f"You have started supervising {users[session_id]}. Supervisors: {', '.join(sups)}")
+    dirty = True
 
 
 def unsupervise(supervisor_id, session_id):
+    global dirty
     if session_id in sessions and supervisor_id in sessions[session_id]['supervisors']:
         sessions[session_id]['supervisors'].remove(supervisor_id)
     sups = get_session_supervisor_names(session_id)
@@ -157,6 +168,7 @@ def unsupervise(supervisor_id, session_id):
         bot.sendMessage(session_id, f"⚠️  {users[supervisor_id]} has stopped supervising. No one supervising!")
         bot.sendMessage(supervisor_id, f"⚠️  You have stopped supervising {users[session_id]} leaving them unsupervised!")
         logging.info(f"{users[supervisor_id]} stopped supervising {users[session_id]} leaving them unsupervised")
+    dirty = True
 
 
 def notify_sessions(id):
@@ -186,7 +198,7 @@ def on_telegram(msg):
                 end_session(id)
             elif msg['text'] == '/begin':
                 name = users[id]
-                sessions[id] = {'last_msg': monotonic(), 'missed':0, 'supervisors':[]}
+                sessions[id] = {'last_msg': time(), 'missed':0, 'supervisors':[]}
                 sups = ""
                 for sup_id in supervisors:
                     sups += f"\n/add_supervisor_{sup_id} {users[sup_id]}"
@@ -198,7 +210,7 @@ def on_telegram(msg):
                     for sup_id in sessions[id]['supervisors']:
                         bot.sendMessage(sup_id, f"💚 {users[id]} has responded")
                 sessions[id]['missed'] = 0
-                sessions[id]['last_msg'] = monotonic()
+                sessions[id]['last_msg'] = time()
             elif msg['text'].startswith('/supervise'):
                 try:
                     session_id = int(msg['text'][11:])
@@ -321,7 +333,7 @@ if __name__ == '__main__':
         if count < 60:
             continue
         for id, config in sessions.items():
-            time_delta = int((monotonic() - config['last_msg']) / 60) - NOTIFY_INTERVAL
+            time_delta = int((time() - config['last_msg']) / 60) - NOTIFY_INTERVAL
             logging.debug(f"Minutes to next notification for {id} time_delta")
             if time_delta >= 0 and time_delta % REPEAT_INTERVAL == 0:
                 try:
@@ -344,6 +356,8 @@ if __name__ == '__main__':
                     logging.warning(e)
                     bot.getUpdates(offset=-1)
         count = 0
+        if dirty:
+            save()
+            dirty = False
     
     logging.info("Stopping lone working service")
-    save()
